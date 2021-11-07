@@ -85,24 +85,37 @@ fn main() {
         }
     }
 
+    let mut weight = vec![vec![0; input.m]; input.n];
+    for (i, w_row) in weight.iter_mut().enumerate() {
+        for (j, w) in w_row.iter_mut().enumerate() {
+            for k in 0..input.k {
+                *w += (input.d[i][k] - s[j][k]).max(0);
+            }
+            if *w != 0 {
+                *w += 3;
+            }
+            *w = 1.max(*w);
+        }
+    }
+
     loop {
         let assign = assign_task(
             &input,
             &startable_tasks,
             &member_state,
             &mut member_require_days,
-            &s,
+            &weight,
         );
 
         // printは一回にまとめた方が早くなる？
-        print!("{}", assign.len());
+        let mut output = assign.len().to_string();
         for (a, b) in assign {
             // memberに割り当てたタスク番号を入れる
             member_state[a] = b + 1;
             startable_tasks.remove(&b);
-            print!(" {} {}", a + 1, b + 1);
+            output += format!(" {} {}", a + 1, b + 1).as_str();
         }
-        println!();
+        println!("{}", output);
 
         for r_day in member_require_days.iter_mut() {
             if *r_day > 0 {
@@ -150,24 +163,11 @@ fn assign_task(
     startable_tasks: &HashSet<usize, RandomState>,
     member_state: &[usize],
     member_require_days: &mut Vec<i32>,
-    estimated_s: &[Vec<i32>],
+    weight: &[Vec<i32>],
 ) -> Vec<(usize, usize)> {
     // 推定しているsを元に割り当てるタスクの割当結果を返す
     // starttable_taskに存在するタスクそれぞれについて、現在フリーなメンバーをw_(i,j)の昇順にソートする
     // starttable_taskについて、w_(i,j) + (取り組んでいるタスクが終わるまでの日数)の合計が小さくなるようにタスクを割り当てる
-
-    let mut weight = vec![vec![0; input.m]; input.n];
-    for (i, w_row) in weight.iter_mut().enumerate() {
-        for (j, w) in w_row.iter_mut().enumerate() {
-            for k in 0..input.k {
-                *w += (input.d[i][k] - estimated_s[j][k]).max(0);
-            }
-            if *w != 0 {
-                *w += 3;
-            }
-            *w = 1.max(*w);
-        }
-    }
 
     let mut fm = (0..input.m).collect::<Vec<_>>();
     let mut assign = vec![];
