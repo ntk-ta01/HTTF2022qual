@@ -86,7 +86,13 @@ fn main() {
     }
 
     loop {
-        let assign = assign_task(&input, &startable_tasks, &mut member_require_days, &s);
+        let assign = assign_task(
+            &input,
+            &startable_tasks,
+            &member_state,
+            &mut member_require_days,
+            &s,
+        );
 
         // printは一回にまとめた方が早くなる？
         print!("{}", assign.len());
@@ -97,6 +103,12 @@ fn main() {
             print!(" {} {}", a + 1, b + 1);
         }
         println!();
+
+        for r_day in member_require_days.iter_mut() {
+            if *r_day > 0 {
+                *r_day -= 1;
+            }
+        }
 
         let (n, f) = {
             let mut line: String = String::new();
@@ -136,6 +148,7 @@ fn main() {
 fn assign_task(
     input: &Input,
     startable_tasks: &HashSet<usize, RandomState>,
+    member_state: &[usize],
     member_require_days: &mut Vec<i32>,
     estimated_s: &[Vec<i32>],
 ) -> Vec<(usize, usize)> {
@@ -149,6 +162,9 @@ fn assign_task(
             for k in 0..input.k {
                 *w += (input.d[i][k] - estimated_s[j][k]).max(0);
             }
+            if *w != 0 {
+                *w += 3;
+            }
             *w = 1.max(*w);
         }
     }
@@ -158,7 +174,7 @@ fn assign_task(
     for task in startable_tasks.iter() {
         fm.sort_by_key(|j| -(weight[*task][*j] + member_require_days[*j]));
         if let Some(assigned_m) = fm.pop() {
-            if member_require_days[assigned_m] == 0 {
+            if member_state[assigned_m] == 0 {
                 member_require_days[assigned_m] = weight[*task][assigned_m];
                 assign.push((assigned_m, *task));
             }
