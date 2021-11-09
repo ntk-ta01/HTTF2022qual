@@ -43,6 +43,8 @@ fn main() {
     }
     // 0になったらタスク開始可能頂点として扱う
     let mut startable_tasks = (0..n).filter(|x| indeg[*x] == 0).collect::<HashSet<_>>();
+    // 進行中のタスク
+    let mut processing_tasks = HashSet::new();
 
     // メンバーには割当タスクがあるかどうかの状態があるので、管理したい
     let mut member_state = vec![0; input.m];
@@ -51,8 +53,12 @@ fn main() {
     // マイナスなら想定より遅く終わっている
     let mut member_require_days = vec![0; input.m];
     // これt_(i,j)を推定することになるのでは？
+    // メンバーごとに過去に割り振られたタスクと、かかった日数を覚えておく？
+    // かかった日数の少ないタスクの要求技能レベルをメンバーjの技能だとする
+    let mut member_assigned_tasks = vec![vec![]; input.m];
+    let mut task_time = vec![-1; input.n];
 
-    // 要求技能レベルについては、一旦考慮しないこととする
+    // 要求技能レベル
     let mut s = vec![vec![1; input.k]; input.m];
     for i in 0..input.m {
         let mut b = vec![0.0; input.k];
@@ -79,6 +85,8 @@ fn main() {
         for (a, b) in assign {
             // memberに割り当てたタスク番号を入れる
             member_state[a] = b + 1;
+            processing_tasks.insert(b);
+            task_time[b] = 0;
             startable_tasks.remove(&b);
             output += format!(" {} {}", a + 1, b + 1).as_str();
         }
@@ -86,6 +94,10 @@ fn main() {
 
         for r_day in member_require_days.iter_mut() {
             *r_day -= 1;
+        }
+
+        for task in processing_tasks.iter() {
+            task_time[*task] += 1;
         }
 
         let (n, f) = {
@@ -110,29 +122,43 @@ fn main() {
             // 実際にはそこまで悲観的でなくともよさそう？ もう少し技能レベルについて楽観的に見てもよい？
             // なんかモデルが必要そう
             let task = member_state[finished_member - 1] - 1;
-            for (required_skill, skill) in
-                input.d[task].iter().zip(s[finished_member - 1].iter_mut())
-            {
-                // 想定より早く終わっていたら+、想定より遅く終わっていたら-の値
-                // だと思ったが、これでは一度本来の技能よりも大きくなると想定よりも早く終わって技能が本来の技能よりも大きくなってしまう
-                let delay = member_require_days[finished_member - 1];
-                // *skill = (required_skill + delay / input.k as i32 / 2).max(*skill);
-                // ↑require_skillに足してskillと大きい方だと技能kごとには変化しない
-                // delayの大きさとrequired_skillの大きさに応じて、skillがいい感じに変化していくと嬉しい
-                // s_i,jの生成方法を真似するとよい？参考にする必要はありそう
-                // s_iの合計値はどれくらいになる？
-                // s_i,jは[0,60]くらい
-                // *skill = (required_skill + delay + *skill) / 2;
-                // ↑delayの絶対値が小さいほどrequired_skillに似ている
-                *skill = if delay == 0 {
-                    *required_skill
+            processing_tasks.remove(&task);
+            member_assigned_tasks[finished_member - 1].push(task);
+
+            member_assigned_tasks[finished_member - 1].sort_by_key(|k| task_time[*k]);
+
+            // task_timeが小さいタスクのdに近くなるようにして、大きいタスクから遠くなるようなベクトルs_jにする
+            s[finished_member - 1] =
+                input.d[member_assigned_tasks[finished_member - 1][0] as usize].clone();
+
+            for past_task in member_assigned_tasks[finished_member - 1].iter() {
+                if task_time[*past_task] == 1 {
+                    for (k, k_skill) in input.d[*past_task].iter().enumerate() {
+                        s[finished_member - 1][k] = s[finished_member - 1][k].max(*k_skill);
+                    }
                 } else {
-                    (*required_skill + *skill - delay) / 2
-                };
-                // あとweightも変えなきゃいけないよな
-                // タスク遂行に何日かかったか、required_skill、現在の推定skill
+                    break;
+                }
             }
 
+            // for (required_skill, skill) in
+            //     input.d[task].iter().zip(s[finished_member - 1].iter_mut())
+            // {
+            // 想定より早く終わっていたら+、想定より遅く終わっていたら-の値
+            // だと思ったが、これでは一度本来の技能よりも大きくなると想定よりも早く終わって技能が本来の技能よりも大きくなってしまう
+
+            // *skill = (required_skill + delay / input.k as i32 / 2).max(*skill);
+            // ↑require_skillに足してskillと大きい方だと技能kごとには変化しない
+            // delayの大きさとrequired_skillの大きさに応じて、skillがいい感じに変化していくと嬉しい
+            // s_i,jの生成方法を真似するとよい？参考にする必要はありそう
+            // s_iの合計値はどれくらいになる？
+            // s_i,jは[0,60]くらい
+            // *skill = (required_skill + delay + *skill) / 2;
+            // ↑delayの絶対値が小さいほどrequired_skillに似ている
+            // *skill = *required_skill;
+            // あとweightも変えなきゃいけないよな
+            // タスク遂行に何日かかったか、required_skill、現在の推定skill
+            // }
             member_require_days[finished_member - 1] = 0;
             member_state[finished_member - 1] = 0;
         }
@@ -147,6 +173,17 @@ fn main() {
         }
 
         if n == -1 {
+            // for i in 0..input.m {
+            //     eprint!("{}: ", i);
+            //     for x in member_assigned_tasks[i].iter().take(5) {
+            //         eprint!("{} ", task_time[*x]);
+            //     }
+            //     eprint!("/ ");
+            //     for x in member_assigned_tasks[i].iter().rev().take(5) {
+            //         eprint!("{} ", task_time[*x]);
+            //     }
+            //     eprintln!();
+            // }
             break;
         }
     }
@@ -175,7 +212,7 @@ fn assign_task(
             if w != 0 {
                 w += 3;
             }
-            w = 1.max(w);
+            w = 1.max(w) - 1;
             let key = *task + *j * input.n;
             weight.insert(key, w);
         }
