@@ -59,17 +59,17 @@ fn main() {
     let mut task_time = vec![-1; input.n];
 
     // 要求技能レベル
-    let mut s = vec![vec![1; input.k]; input.m];
-    for i in 0..input.m {
-        let mut b = vec![0.0; input.k];
-        for j in 0..input.k {
-            b[j] = f64::abs(rng.sample(rand_distr::StandardNormal));
-        }
-        let mul = rng.gen_range(20.0, 60.0) / b.iter().map(|x| x * x).sum::<f64>().sqrt();
-        for j in 0..input.k {
-            s[i][j] = (b[j] * mul).round() as i32;
-        }
-    }
+    let mut s = vec![vec![0; input.k]; input.m];
+    // for i in 0..input.m {
+    //     let mut b = vec![0.0; input.k];
+    //     for j in 0..input.k {
+    //         b[j] = f64::abs(rng.sample(rand_distr::StandardNormal));
+    //     }
+    //     let mul = rng.gen_range(20.0, 60.0) / b.iter().map(|x| x * x).sum::<f64>().sqrt();
+    //     for j in 0..input.k {
+    //         s[i][j] = (b[j] * mul).round() as i32;
+    //     }
+    // }
 
     loop {
         let assign = assign_task(
@@ -128,37 +128,22 @@ fn main() {
             member_assigned_tasks[finished_member - 1].sort_by_key(|k| task_time[*k]);
 
             // task_timeが小さいタスクのdに近くなるようにして、大きいタスクから遠くなるようなベクトルs_jにする
-            s[finished_member - 1] =
-                input.d[member_assigned_tasks[finished_member - 1][0] as usize].clone();
 
-            for past_task in member_assigned_tasks[finished_member - 1].iter() {
-                if task_time[*past_task] == 1 {
-                    for (k, k_skill) in input.d[*past_task].iter().enumerate() {
-                        s[finished_member - 1][k] = s[finished_member - 1][k].max(*k_skill);
-                    }
-                } else {
-                    break;
+            for (i, past_task) in member_assigned_tasks[finished_member - 1]
+                .iter()
+                .enumerate()
+            {
+                // 過去のタスクについて、かかった日数がわかる
+                // 現在の推定sからかかる日数を推定できる
+                // 過去の推定sからかかる日数を推定してある
+                // task_tima[past_task] == 1だったらそれ以上の技能がどの技能kについてもある
+                // そうでなくとも(かかった日数 - 1)だけ引いた分はどの技能kについても保証できる
+                let pena = task_time[*past_task] - 1;
+                for (k, k_skill) in input.d[*past_task].iter().enumerate() {
+                    let g_skill = 0.max(*k_skill - pena * pena * pena).max(*k_skill);
+                    s[finished_member - 1][k] = g_skill;
                 }
             }
-
-            // for (required_skill, skill) in
-            //     input.d[task].iter().zip(s[finished_member - 1].iter_mut())
-            // {
-            // 想定より早く終わっていたら+、想定より遅く終わっていたら-の値
-            // だと思ったが、これでは一度本来の技能よりも大きくなると想定よりも早く終わって技能が本来の技能よりも大きくなってしまう
-
-            // *skill = (required_skill + delay / input.k as i32 / 2).max(*skill);
-            // ↑require_skillに足してskillと大きい方だと技能kごとには変化しない
-            // delayの大きさとrequired_skillの大きさに応じて、skillがいい感じに変化していくと嬉しい
-            // s_i,jの生成方法を真似するとよい？参考にする必要はありそう
-            // s_iの合計値はどれくらいになる？
-            // s_i,jは[0,60]くらい
-            // *skill = (required_skill + delay + *skill) / 2;
-            // ↑delayの絶対値が小さいほどrequired_skillに似ている
-            // *skill = *required_skill;
-            // あとweightも変えなきゃいけないよな
-            // タスク遂行に何日かかったか、required_skill、現在の推定skill
-            // }
             member_require_days[finished_member - 1] = 0;
             member_state[finished_member - 1] = 0;
         }
@@ -174,12 +159,13 @@ fn main() {
 
         if n == -1 {
             // for i in 0..input.m {
+            //     member_assigned_tasks[i].sort_by_key(|k| task_time[*k]);
             //     eprint!("{}: ", i);
-            //     for x in member_assigned_tasks[i].iter().take(5) {
+            //     for x in member_assigned_tasks[i].iter().take(10) {
             //         eprint!("{} ", task_time[*x]);
             //     }
             //     eprint!("/ ");
-            //     for x in member_assigned_tasks[i].iter().rev().take(5) {
+            //     for x in member_assigned_tasks[i].iter().rev().take(10).rev() {
             //         eprint!("{} ", task_time[*x]);
             //     }
             //     eprintln!();
@@ -216,12 +202,18 @@ fn assign_task(
             let key = *task + *j * input.n;
             weight.insert(key, w);
         }
-        fm.sort_by_key(|j| -(weight[&(*task + *j * input.n)] + member_require_days[*j]));
-        if let Some(assigned_m) = fm.pop() {
-            if member_state[assigned_m] == 0 {
-                member_require_days[assigned_m] = weight[&(*task + assigned_m * input.n)];
-                assign.push((assigned_m, *task));
+        fm.sort_by_key(|j| -(weight[&(*task + *j * input.n)]));
+        let mut erase_m = 21;
+        for (i, assigned_m) in fm.iter().enumerate() {
+            if member_state[*assigned_m] == 0 {
+                member_require_days[*assigned_m] = weight[&(*task + *assigned_m * input.n)];
+                assign.push((*assigned_m, *task));
+                erase_m = i;
+                break;
             }
+        }
+        if erase_m != 21 {
+            fm.remove(erase_m);
         }
     }
     assign
