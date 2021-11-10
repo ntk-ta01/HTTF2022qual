@@ -1,4 +1,5 @@
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
+use num_integer::sqrt;
 use proconio::{input, source::line::LineSource};
 // use rand::prelude::*;
 use std::{
@@ -71,28 +72,30 @@ fn main() {
     //         s[i][j] = (b[j] * mul).round() as i32;
     //     }
     // }
-    let mut s = [
-        vec![0, 7, 28, 1, 11, 10, 9, 7, 4, 1, 6, 4, 2, 12, 9],
-        vec![16, 1, 14, 9, 0, 5, 15, 6, 2, 0, 4, 6, 2, 4, 7],
-        vec![3, 3, 3, 1, 5, 12, 25, 2, 7, 13, 4, 20, 12, 23, 6],
-        vec![13, 11, 6, 3, 11, 27, 3, 9, 8, 5, 10, 4, 2, 2, 16],
-        vec![6, 5, 2, 1, 6, 14, 2, 15, 14, 3, 20, 6, 5, 17, 0],
-        vec![3, 13, 18, 26, 22, 14, 14, 0, 10, 0, 16, 10, 17, 5, 8],
-        vec![18, 11, 8, 7, 7, 9, 15, 12, 28, 4, 4, 1, 0, 3, 8],
-        vec![1, 1, 4, 5, 9, 2, 5, 12, 5, 2, 7, 3, 3, 3, 2],
-        vec![6, 11, 0, 6, 5, 5, 8, 0, 18, 5, 8, 0, 7, 5, 5],
-        vec![19, 19, 6, 16, 9, 20, 13, 5, 14, 16, 9, 16, 5, 2, 12],
-        vec![8, 7, 4, 6, 14, 14, 3, 8, 3, 3, 27, 4, 6, 11, 10],
-        vec![1, 1, 0, 7, 1, 11, 8, 7, 22, 5, 18, 7, 10, 12, 21],
-        vec![12, 13, 1, 12, 13, 5, 25, 23, 22, 9, 23, 8, 3, 14, 21],
-        vec![3, 2, 14, 6, 15, 9, 3, 1, 16, 6, 7, 1, 6, 1, 1],
-        vec![1, 0, 7, 12, 1, 2, 0, 1, 2, 6, 4, 1, 14, 6, 16],
-        vec![0, 9, 4, 4, 1, 6, 7, 5, 1, 8, 14, 5, 15, 1, 1],
-        vec![2, 11, 9, 12, 11, 3, 4, 19, 5, 4, 9, 4, 18, 30, 27],
-        vec![8, 5, 1, 3, 26, 24, 7, 5, 5, 5, 18, 7, 15, 6, 2],
-        vec![5, 4, 1, 3, 3, 9, 0, 4, 1, 11, 4, 6, 10, 6, 6],
-        vec![8, 14, 12, 4, 14, 2, 3, 7, 6, 23, 18, 8, 7, 2, 11],
-    ];
+    // let mut s = [
+    //     vec![0, 7, 28, 1, 11, 10, 9, 7, 4, 1, 6, 4, 2, 12, 9],
+    //     vec![16, 1, 14, 9, 0, 5, 15, 6, 2, 0, 4, 6, 2, 4, 7],
+    //     vec![3, 3, 3, 1, 5, 12, 25, 2, 7, 13, 4, 20, 12, 23, 6],
+    //     vec![13, 11, 6, 3, 11, 27, 3, 9, 8, 5, 10, 4, 2, 2, 16],
+    //     vec![6, 5, 2, 1, 6, 14, 2, 15, 14, 3, 20, 6, 5, 17, 0],
+    //     vec![3, 13, 18, 26, 22, 14, 14, 0, 10, 0, 16, 10, 17, 5, 8],
+    //     vec![18, 11, 8, 7, 7, 9, 15, 12, 28, 4, 4, 1, 0, 3, 8],
+    //     vec![1, 1, 4, 5, 9, 2, 5, 12, 5, 2, 7, 3, 3, 3, 2],
+    //     vec![6, 11, 0, 6, 5, 5, 8, 0, 18, 5, 8, 0, 7, 5, 5],
+    //     vec![19, 19, 6, 16, 9, 20, 13, 5, 14, 16, 9, 16, 5, 2, 12],
+    //     vec![8, 7, 4, 6, 14, 14, 3, 8, 3, 3, 27, 4, 6, 11, 10],
+    //     vec![1, 1, 0, 7, 1, 11, 8, 7, 22, 5, 18, 7, 10, 12, 21],
+    //     vec![12, 13, 1, 12, 13, 5, 25, 23, 22, 9, 23, 8, 3, 14, 21],
+    //     vec![3, 2, 14, 6, 15, 9, 3, 1, 16, 6, 7, 1, 6, 1, 1],
+    //     vec![1, 0, 7, 12, 1, 2, 0, 1, 2, 6, 4, 1, 14, 6, 16],
+    //     vec![0, 9, 4, 4, 1, 6, 7, 5, 1, 8, 14, 5, 15, 1, 1],
+    //     vec![2, 11, 9, 12, 11, 3, 4, 19, 5, 4, 9, 4, 18, 30, 27],
+    //     vec![8, 5, 1, 3, 26, 24, 7, 5, 5, 5, 18, 7, 15, 6, 2],
+    //     vec![5, 4, 1, 3, 3, 9, 0, 4, 1, 11, 4, 6, 10, 6, 6],
+    //     vec![8, 14, 12, 4, 14, 2, 3, 7, 6, 23, 18, 8, 7, 2, 11],
+    // ];
+
+    let mut weight = HashMap::new();
 
     // let mut day = 0;
     loop {
@@ -105,6 +108,7 @@ fn main() {
             &mut member_require_days,
             &s,
             &outdeg,
+            &mut weight,
         );
         // printは一回にまとめた方が早くなる？
         let mut output = assign.len().to_string();
@@ -159,10 +163,41 @@ fn main() {
                 // 過去の推定sからかかる日数を推定してある
                 // task_tima[past_task] == 1だったらそれ以上の技能がどの技能kについてもある
                 // そうでなくとも(かかった日数 - 1)だけ引いた分はどの技能kについても保証できる
-                let pena = task_time[*past_task] - 1;
-                for (k, k_skill) in input.d[*past_task].iter().enumerate() {
-                    let g_skill = (*k_skill - pena * pena * pena).max(*k_skill);
-                    // s[finished_member - 1][k] = g_skill;
+                // let pena = task_time[*past_task] - 1;
+                // for (k, k_skill) in input.d[*past_task].iter().enumerate() {
+                //     let g_skill = (*k_skill - pena * pena * pena).max(*k_skill);
+                //     s[finished_member - 1][k] = g_skill;
+                // }
+                // eprintln!("{:?}", s[finished_member - 1]);
+                let past_task_l2 = sqrt(input.d[*past_task].iter().map(|x| *x * *x).sum::<i32>());
+                let s_j_l2 = sqrt(s[finished_member - 1].iter().map(|x| *x * *x).sum::<i32>());
+                if weight[&(*past_task, finished_member - 1)] < task_time[*past_task] {
+                    for (d_k, s_k) in input.d[*past_task]
+                        .iter()
+                        .zip(s[finished_member - 1].iter_mut())
+                    {
+                        if *d_k < 6 && 6 <= *s_k {
+                            *s_k = *d_k;
+                        } else if past_task_l2 - s_j_l2 > input.k as i32 {
+                            *s_k = 0.max(*s_k - (past_task_l2 - s_j_l2) / input.k as i32);
+                        } else if past_task_l2 - s_j_l2 > 6 as i32 && 13 <= *s_k {
+                            *s_k = 0.max(*s_k - 3);
+                        }
+                    }
+                }
+                if weight[&(*past_task, finished_member - 1)] > task_time[*past_task] {
+                    for (d_k, s_k) in input.d[*past_task]
+                        .iter()
+                        .zip(s[finished_member - 1].iter_mut())
+                    {
+                        if *s_k < *d_k {
+                            *s_k = *d_k;
+                        }
+                        if past_task_l2 - s_j_l2 > input.k as i32 {
+                            *s_k += (past_task_l2 - s_j_l2) / input.k as i32;
+                        }
+                        // *d_k のl2ノルムがある程度大きかったら*s_kのl2ノルムも計算して小さかったら少し足す
+                    }
                 }
             }
             member_require_days[finished_member - 1] = 0;
@@ -170,13 +205,13 @@ fn main() {
         }
 
         // 技能レベルの予測値
-        // for (index, line) in s.iter().enumerate() {
-        //     print!("#s {}", index + 1);
-        //     for predict in line {
-        //         print!(" {}", predict);
-        //     }
-        //     println!();
-        // }
+        for (index, line) in s.iter().enumerate() {
+            print!("#s {}", index + 1);
+            for predict in line {
+                print!(" {}", predict);
+            }
+            println!();
+        }
 
         if n == -1 {
             // for i in 0..input.m {
@@ -203,6 +238,7 @@ fn assign_task(
     member_require_days: &mut Vec<i32>,
     s: &[Vec<i32>],
     outdeg: &[i32],
+    weight: &mut HashMap<(usize, usize), i32>,
 ) -> Vec<(usize, usize)> {
     // 推定しているsを元に割り当てるタスクの割当結果を返す
     // starttable_taskに存在するタスクそれぞれについて、現在フリーなメンバーをw_(i,j)の昇順にソートする
@@ -210,7 +246,6 @@ fn assign_task(
 
     let mut fm = (0..input.m).collect::<Vec<_>>();
     let mut assign = vec![];
-    let mut weight = HashMap::new();
     let mut sorted_tasks = startable_tasks.clone().into_iter().collect::<Vec<_>>();
     sorted_tasks.sort_by_key(|task| Reverse(outdeg[*task]));
     for task in sorted_tasks {
@@ -219,10 +254,7 @@ fn assign_task(
             for k in 0..input.k {
                 w += (input.d[task][k] - s[*j][k]).max(0);
             }
-            if w != 0 {
-                w += 3;
-            }
-            w = 1.max(w) - 1;
+            w = 1.max(w);
             let key = (task, *j);
             weight.insert(key, w);
         }
