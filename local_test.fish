@@ -25,3 +25,4 @@ for val in (seq 10 49)
   set score (math $score + $now)
 end
 echo score: $score
+rm tmp
