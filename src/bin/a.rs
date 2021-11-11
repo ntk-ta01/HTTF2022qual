@@ -157,19 +157,29 @@ fn main() {
 
             // task_timeが小さいタスクのdに近くなるようにして、大きいタスクから遠くなるようなベクトルs_jにする
 
+            // for past_task in member_assigned_tasks[finished_member - 1] {
+            // 過去のタスクについて、かかった日数がわかる
+            // 現在の推定sからかかる日数を推定できる
+            // 過去の推定sからかかる日数を推定してある
+            // task_tima[past_task] == 1だったらそれ以上の技能がどの技能kについてもある
+            // そうでなくとも(かかった日数 - 1)だけ引いた分はどの技能kについても保証できる
+            // let pena = task_time[*past_task] - 1;
+            // for (k, k_skill) in input.d[*past_task].iter().enumerate() {
+            //     let g_skill = (*k_skill - pena * pena * pena).max(*k_skill);
+            //     s[finished_member - 1][k] = g_skill;
+            // }
+            // eprintln!("{:?}", s[finished_member - 1]);
             for past_task in member_assigned_tasks[finished_member - 1].iter() {
-                // 過去のタスクについて、かかった日数がわかる
-                // 現在の推定sからかかる日数を推定できる
-                // 過去の推定sからかかる日数を推定してある
-                // task_tima[past_task] == 1だったらそれ以上の技能がどの技能kについてもある
-                // そうでなくとも(かかった日数 - 1)だけ引いた分はどの技能kについても保証できる
-                // let pena = task_time[*past_task] - 1;
-                // for (k, k_skill) in input.d[*past_task].iter().enumerate() {
-                //     let g_skill = (*k_skill - pena * pena * pena).max(*k_skill);
-                //     s[finished_member - 1][k] = g_skill;
-                // }
-                // eprintln!("{:?}", s[finished_member - 1]);
-                let past_task_l2 = sqrt(input.d[*past_task].iter().map(|x| *x * *x).sum::<i32>());
+                let mut w = 0;
+                for k in 0..input.k {
+                    w += (input.d[*past_task][k] - s[finished_member - 1][k]).max(0);
+                }
+                w = 1.max(w);
+                weight.insert((*past_task, finished_member - 1), w);
+
+                // 直前のタスクの影響を受けすぎる
+                // それまでのタスクをすべて考慮したい
+                let past_task_l2 = sqrt(input.d[task].iter().map(|x| *x * *x).sum::<i32>());
                 let s_j_l2 = sqrt(s[finished_member - 1].iter().map(|x| *x * *x).sum::<i32>());
                 if weight[&(*past_task, finished_member - 1)] < task_time[*past_task] {
                     for (d_k, s_k) in input.d[*past_task]
@@ -200,6 +210,7 @@ fn main() {
                     }
                 }
             }
+            // }
             member_require_days[finished_member - 1] = 0;
             member_state[finished_member - 1] = 0;
         }

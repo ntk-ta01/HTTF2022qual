@@ -1,0 +1,6 @@
+    Finished release [optimized] target(s) in 0.01s
+     Running `/home/ntk00ta/comp-pro/target/release/tester cargo run --release --bin future-contest-2022-qual-a`
+    Finished release [optimized] target(s) in 0.03s
+     Running `/home/ntk00ta/comp-pro/target/release/future-contest-2022-qual-a`
+Score = 1523
+1523

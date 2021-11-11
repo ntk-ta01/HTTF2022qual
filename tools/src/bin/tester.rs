@@ -121,6 +121,7 @@ fn exec(command: &str, args: &[String]) {
                 n as i64
             };
             eprintln!("Score = {}", score);
+            eprintln!("{}", score);
             return;
         }
         write!(stdin, "{}", f.len()).unwrap_or_else(|_| err());
