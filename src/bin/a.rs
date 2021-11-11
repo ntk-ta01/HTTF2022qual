@@ -169,6 +169,7 @@ fn main() {
             //     s[finished_member - 1][k] = g_skill;
             // }
             // eprintln!("{:?}", s[finished_member - 1]);
+            member_assigned_tasks[finished_member - 1].sort_by_key(|t| task_time[*t]);
             for past_task in member_assigned_tasks[finished_member - 1].iter() {
                 let mut w = 0;
                 for k in 0..input.k {
@@ -213,6 +214,14 @@ fn main() {
                             / input.k as i32;
                         // }
                         // *d_k のl2ノルムがある程度大きかったら*s_kのl2ノルムも計算して小さかったら少し足す
+                    }
+                }
+                if weight[&(*past_task, finished_member - 1)] == task_time[*past_task] {
+                    for (d_k, s_k) in input.d[*past_task]
+                        .iter()
+                        .zip(s[finished_member - 1].iter_mut())
+                    {
+                        *s_k = *d_k;
                     }
                 }
             }
