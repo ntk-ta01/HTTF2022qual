@@ -179,33 +179,39 @@ fn main() {
 
                 // 直前のタスクの影響を受けすぎる
                 // それまでのタスクをすべて考慮したい
-                let past_task_l2 = sqrt(input.d[task].iter().map(|x| *x * *x).sum::<i32>());
-                let s_j_l2 = sqrt(s[finished_member - 1].iter().map(|x| *x * *x).sum::<i32>());
+                let _past_task_l2 = sqrt(input.d[*past_task].iter().map(|x| *x * *x).sum::<i32>());
+                let _s_j_l2 = sqrt(s[finished_member - 1].iter().map(|x| *x * *x).sum::<i32>());
                 if weight[&(*past_task, finished_member - 1)] < task_time[*past_task] {
-                    for (d_k, s_k) in input.d[*past_task]
+                    for (_d_k, s_k) in input.d[*past_task]
                         .iter()
                         .zip(s[finished_member - 1].iter_mut())
                     {
-                        if *d_k < 6 && 6 <= *s_k {
-                            *s_k = *d_k;
-                        } else if past_task_l2 - s_j_l2 > input.k as i32 {
-                            *s_k = 0.max(*s_k - (past_task_l2 - s_j_l2) / input.k as i32);
-                        } else if past_task_l2 - s_j_l2 > 6 as i32 && 13 <= *s_k {
-                            *s_k = 0.max(*s_k - 3);
-                        }
+                        // if *d_k < 6 && 6 <= *s_k {
+                        //     *s_k = *d_k;
+                        // } else if past_task_l2 - s_j_l2 > input.k as i32 {
+                        *s_k = 0.max(
+                            *s_k - (task_time[*past_task]
+                                - weight[&(*past_task, finished_member - 1)])
+                                / input.k as i32,
+                        );
+                        // } else if past_task_l2 - s_j_l2 > 6 as i32 && 13 <= *s_k {
+                        //     *s_k = 0.max(*s_k - 3);
+                        // }
                     }
                 }
                 if weight[&(*past_task, finished_member - 1)] > task_time[*past_task] {
-                    for (d_k, s_k) in input.d[*past_task]
+                    for (_d_k, s_k) in input.d[*past_task]
                         .iter()
                         .zip(s[finished_member - 1].iter_mut())
                     {
-                        if *s_k < *d_k {
-                            *s_k = *d_k;
-                        }
-                        if past_task_l2 - s_j_l2 > input.k as i32 {
-                            *s_k += (past_task_l2 - s_j_l2) / input.k as i32;
-                        }
+                        // if *s_k < *d_k {
+                        //     *s_k = *d_k;
+                        // }
+                        // if past_task_l2 - s_j_l2 > input.k as i32 {
+                        *s_k += (weight[&(*past_task, finished_member - 1)]
+                            - task_time[*past_task])
+                            / input.k as i32;
+                        // }
                         // *d_k のl2ノルムがある程度大きかったら*s_kのl2ノルムも計算して小さかったら少し足す
                     }
                 }
