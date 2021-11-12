@@ -1,11 +1,14 @@
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
-use num_integer::sqrt;
+use itertools::Itertools;
+// use num_integer::sqrt;
+use nalgebra::*;
 use proconio::{input, source::line::LineSource};
-// use rand::prelude::*;
+use rand::prelude::*;
 use std::{
     cmp::Reverse,
     collections::{hash_map::RandomState, HashMap, HashSet},
     io::{self, BufReader},
+    iter::repeat,
 };
 
 #[allow(dead_code)]
@@ -31,7 +34,7 @@ fn main() {
     }
     let input = Input { n, m, k, r, d, uv };
 
-    // let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(0);
+    let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(0);
 
     // タスクには依存関係があるので、始められるタスクを列挙したい
     // 有向グラフだと思って、入次数が0の点から始めるのがよさそう？
@@ -62,16 +65,16 @@ fn main() {
 
     // 要求技能レベル
     let mut s = vec![vec![0; input.k]; input.m];
-    // for i in 0..input.m {
-    //     let mut b = vec![0.0; input.k];
-    //     for j in 0..input.k {
-    //         b[j] = f64::abs(rng.sample(rand_distr::StandardNormal));
-    //     }
-    //     let mul = rng.gen_range(20.0, 60.0) / b.iter().map(|x| x * x).sum::<f64>().sqrt();
-    //     for j in 0..input.k {
-    //         s[i][j] = (b[j] * mul).round() as i32;
-    //     }
-    // }
+    for i in 0..input.m {
+        let mut b = vec![0.0; input.k];
+        for j in 0..input.k {
+            b[j] = f64::abs(rng.sample(rand_distr::StandardNormal));
+        }
+        let mul = rng.gen_range(20.0, 60.0) / b.iter().map(|x| x * x).sum::<f64>().sqrt();
+        for j in 0..input.k {
+            s[i][j] = (b[j] * mul).round() as i32;
+        }
+    }
     // let mut s = [
     //     vec![0, 7, 28, 1, 11, 10, 9, 7, 4, 1, 6, 4, 2, 12, 9],
     //     vec![16, 1, 14, 9, 0, 5, 15, 6, 2, 0, 4, 6, 2, 4, 7],
@@ -155,77 +158,54 @@ fn main() {
 
             member_assigned_tasks[finished_member - 1].sort_by_key(|k| task_time[*k]);
 
-            // task_timeが小さいタスクのdに近くなるようにして、大きいタスクから遠くなるようなベクトルs_jにする
-
-            // for past_task in member_assigned_tasks[finished_member - 1] {
-            // 過去のタスクについて、かかった日数がわかる
-            // 現在の推定sからかかる日数を推定できる
-            // 過去の推定sからかかる日数を推定してある
-            // task_tima[past_task] == 1だったらそれ以上の技能がどの技能kについてもある
-            // そうでなくとも(かかった日数 - 1)だけ引いた分はどの技能kについても保証できる
-            // let pena = task_time[*past_task] - 1;
-            // for (k, k_skill) in input.d[*past_task].iter().enumerate() {
-            //     let g_skill = (*k_skill - pena * pena * pena).max(*k_skill);
-            //     s[finished_member - 1][k] = g_skill;
-            // }
-            // eprintln!("{:?}", s[finished_member - 1]);
-            member_assigned_tasks[finished_member - 1].sort_by_key(|t| task_time[*t]);
-            for past_task in member_assigned_tasks[finished_member - 1].iter() {
-                let mut w = 0;
-                for k in 0..input.k {
-                    w += (input.d[*past_task][k] - s[finished_member - 1][k]).max(0);
-                }
-                w = 1.max(w);
-                weight.insert((*past_task, finished_member - 1), w);
-
-                // 直前のタスクの影響を受けすぎる
-                // それまでのタスクをすべて考慮したい
-                let _past_task_l2 = sqrt(input.d[*past_task].iter().map(|x| *x * *x).sum::<i32>());
-                let _s_j_l2 = sqrt(s[finished_member - 1].iter().map(|x| *x * *x).sum::<i32>());
-                if weight[&(*past_task, finished_member - 1)] < task_time[*past_task] {
-                    for (_d_k, s_k) in input.d[*past_task]
-                        .iter()
-                        .zip(s[finished_member - 1].iter_mut())
+            let x = DMatrix::from_vec(
+                input.k,
+                member_assigned_tasks[finished_member - 1].len(),
+                member_assigned_tasks[finished_member - 1]
+                    .iter()
+                    .flat_map(|i| {
+                        repeat(*i)
+                            .zip(0..input.k)
+                            .map(|(i, k)| (input.d[i][k] - s[finished_member - 1][k]).max(0) as f64)
+                    })
+                    .collect_vec(),
+            );
+            let y = DVector::from_iterator(
+                member_assigned_tasks[finished_member - 1].len(),
+                member_assigned_tasks[finished_member - 1]
+                    .iter()
+                    .map(|i| task_time[*i] as f64),
+            );
+            let inv_xxt = (x.clone() * x.transpose()).try_inverse();
+            let w = if let Some(xxt) = inv_xxt {
+                Some(xxt * x * y)
+            } else {
+                None
+            };
+            if let Some(w) = w {
+                for (i, past_task) in member_assigned_tasks[finished_member - 1]
+                    .iter()
+                    .enumerate()
+                {
+                    for ((k, s_k), d_k) in s[finished_member - 1]
+                        .iter_mut()
+                        .enumerate()
+                        .zip(input.d[*past_task].iter())
                     {
-                        // if *d_k < 6 && 6 <= *s_k {
-                        //     *s_k = *d_k;
-                        // } else if past_task_l2 - s_j_l2 > input.k as i32 {
-                        *s_k = 0.max(
-                            *s_k - (task_time[*past_task]
-                                - weight[&(*past_task, finished_member - 1)])
-                                / input.k as i32,
-                        );
-                        // } else if past_task_l2 - s_j_l2 > 6 as i32 && 13 <= *s_k {
-                        //     *s_k = 0.max(*s_k - 3);
-                        // }
-                    }
-                }
-                if weight[&(*past_task, finished_member - 1)] > task_time[*past_task] {
-                    for (_d_k, s_k) in input.d[*past_task]
-                        .iter()
-                        .zip(s[finished_member - 1].iter_mut())
-                    {
-                        // if *s_k < *d_k {
-                        //     *s_k = *d_k;
-                        // }
-                        // if past_task_l2 - s_j_l2 > input.k as i32 {
-                        *s_k += (weight[&(*past_task, finished_member - 1)]
-                            - task_time[*past_task])
-                            / input.k as i32;
-                        // }
-                        // *d_k のl2ノルムがある程度大きかったら*s_kのl2ノルムも計算して小さかったら少し足す
-                    }
-                }
-                if weight[&(*past_task, finished_member - 1)] == task_time[*past_task] {
-                    for (d_k, s_k) in input.d[*past_task]
-                        .iter()
-                        .zip(s[finished_member - 1].iter_mut())
-                    {
-                        *s_k = *d_k;
+                        if i == 0 {
+                            *s_k = *d_k;
+                        } else {
+                            *s_k += *d_k;
+                        }
+                        if i == member_assigned_tasks[finished_member - 1].len() - 1 {
+                            *s_k = (*s_k as f64 * w[(k, 0)]
+                                / member_assigned_tasks[finished_member - 1].len() as f64)
+                                as i32;
+                        }
                     }
                 }
             }
-            // }
+
             member_require_days[finished_member - 1] = 0;
             member_state[finished_member - 1] = 0;
         }
