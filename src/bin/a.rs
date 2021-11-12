@@ -1,14 +1,11 @@
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
-use itertools::Itertools;
-// use num_integer::sqrt;
-use nalgebra::*;
+
 use proconio::{input, source::line::LineSource};
-use rand::prelude::*;
+// use rand::prelude::*;
 use std::{
     cmp::Reverse,
     collections::{hash_map::RandomState, HashMap, HashSet},
     io::{self, BufReader},
-    iter::repeat,
 };
 
 #[allow(dead_code)]
@@ -34,7 +31,7 @@ fn main() {
     }
     let input = Input { n, m, k, r, d, uv };
 
-    let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(0);
+    // let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(0);
 
     // タスクには依存関係があるので、始められるタスクを列挙したい
     // 有向グラフだと思って、入次数が0の点から始めるのがよさそう？
@@ -65,38 +62,16 @@ fn main() {
 
     // 要求技能レベル
     let mut s = vec![vec![0; input.k]; input.m];
-    for i in 0..input.m {
-        let mut b = vec![0.0; input.k];
-        for j in 0..input.k {
-            b[j] = f64::abs(rng.sample(rand_distr::StandardNormal));
-        }
-        let mul = rng.gen_range(20.0, 60.0) / b.iter().map(|x| x * x).sum::<f64>().sqrt();
-        for j in 0..input.k {
-            s[i][j] = (b[j] * mul).round() as i32;
-        }
-    }
-    // let mut s = [
-    //     vec![0, 7, 28, 1, 11, 10, 9, 7, 4, 1, 6, 4, 2, 12, 9],
-    //     vec![16, 1, 14, 9, 0, 5, 15, 6, 2, 0, 4, 6, 2, 4, 7],
-    //     vec![3, 3, 3, 1, 5, 12, 25, 2, 7, 13, 4, 20, 12, 23, 6],
-    //     vec![13, 11, 6, 3, 11, 27, 3, 9, 8, 5, 10, 4, 2, 2, 16],
-    //     vec![6, 5, 2, 1, 6, 14, 2, 15, 14, 3, 20, 6, 5, 17, 0],
-    //     vec![3, 13, 18, 26, 22, 14, 14, 0, 10, 0, 16, 10, 17, 5, 8],
-    //     vec![18, 11, 8, 7, 7, 9, 15, 12, 28, 4, 4, 1, 0, 3, 8],
-    //     vec![1, 1, 4, 5, 9, 2, 5, 12, 5, 2, 7, 3, 3, 3, 2],
-    //     vec![6, 11, 0, 6, 5, 5, 8, 0, 18, 5, 8, 0, 7, 5, 5],
-    //     vec![19, 19, 6, 16, 9, 20, 13, 5, 14, 16, 9, 16, 5, 2, 12],
-    //     vec![8, 7, 4, 6, 14, 14, 3, 8, 3, 3, 27, 4, 6, 11, 10],
-    //     vec![1, 1, 0, 7, 1, 11, 8, 7, 22, 5, 18, 7, 10, 12, 21],
-    //     vec![12, 13, 1, 12, 13, 5, 25, 23, 22, 9, 23, 8, 3, 14, 21],
-    //     vec![3, 2, 14, 6, 15, 9, 3, 1, 16, 6, 7, 1, 6, 1, 1],
-    //     vec![1, 0, 7, 12, 1, 2, 0, 1, 2, 6, 4, 1, 14, 6, 16],
-    //     vec![0, 9, 4, 4, 1, 6, 7, 5, 1, 8, 14, 5, 15, 1, 1],
-    //     vec![2, 11, 9, 12, 11, 3, 4, 19, 5, 4, 9, 4, 18, 30, 27],
-    //     vec![8, 5, 1, 3, 26, 24, 7, 5, 5, 5, 18, 7, 15, 6, 2],
-    //     vec![5, 4, 1, 3, 3, 9, 0, 4, 1, 11, 4, 6, 10, 6, 6],
-    //     vec![8, 14, 12, 4, 14, 2, 3, 7, 6, 23, 18, 8, 7, 2, 11],
-    // ];
+    // for i in 0..input.m {
+    //     let mut b = vec![0.0; input.k];
+    //     for j in 0..input.k {
+    //         b[j] = f64::abs(rng.sample(rand_distr::StandardNormal));
+    //     }
+    //     let mul = rng.gen_range(20.0, 60.0) / b.iter().map(|x| x * x).sum::<f64>().sqrt();
+    //     for j in 0..input.k {
+    //         s[i][j] = (b[j] * mul).round() as i32;
+    //     }
+    // }
 
     let mut weight = HashMap::new();
 
@@ -150,61 +125,9 @@ fn main() {
                 }
             }
 
-            // s[finished_member - 1]に修正をかけたい
-            // なんかモデルが必要そう
             let task = member_state[finished_member - 1] - 1;
             processing_tasks.remove(&task);
             member_assigned_tasks[finished_member - 1].push(task);
-
-            member_assigned_tasks[finished_member - 1].sort_by_key(|k| task_time[*k]);
-
-            let x = DMatrix::from_vec(
-                input.k,
-                member_assigned_tasks[finished_member - 1].len(),
-                member_assigned_tasks[finished_member - 1]
-                    .iter()
-                    .flat_map(|i| {
-                        repeat(*i)
-                            .zip(0..input.k)
-                            .map(|(i, k)| (input.d[i][k] - s[finished_member - 1][k]).max(0) as f64)
-                    })
-                    .collect_vec(),
-            );
-            let y = DVector::from_iterator(
-                member_assigned_tasks[finished_member - 1].len(),
-                member_assigned_tasks[finished_member - 1]
-                    .iter()
-                    .map(|i| task_time[*i] as f64),
-            );
-            let inv_xxt = (x.clone() * x.transpose()).try_inverse();
-            let w = if let Some(xxt) = inv_xxt {
-                Some(xxt * x * y)
-            } else {
-                None
-            };
-            if let Some(w) = w {
-                for (i, past_task) in member_assigned_tasks[finished_member - 1]
-                    .iter()
-                    .enumerate()
-                {
-                    for ((k, s_k), d_k) in s[finished_member - 1]
-                        .iter_mut()
-                        .enumerate()
-                        .zip(input.d[*past_task].iter())
-                    {
-                        if i == 0 {
-                            *s_k = *d_k;
-                        } else {
-                            *s_k += *d_k;
-                        }
-                        if i == member_assigned_tasks[finished_member - 1].len() - 1 {
-                            *s_k = (*s_k as f64 * w[(k, 0)]
-                                / member_assigned_tasks[finished_member - 1].len() as f64)
-                                as i32;
-                        }
-                    }
-                }
-            }
 
             member_require_days[finished_member - 1] = 0;
             member_state[finished_member - 1] = 0;
@@ -220,18 +143,6 @@ fn main() {
         }
 
         if n == -1 {
-            // for i in 0..input.m {
-            //     member_assigned_tasks[i].sort_by_key(|k| task_time[*k]);
-            //     eprint!("{}: ", i);
-            //     for x in member_assigned_tasks[i].iter().take(10) {
-            //         eprint!("{} ", task_time[*x]);
-            //     }
-            //     eprint!("/ ");
-            //     for x in member_assigned_tasks[i].iter().rev().take(10).rev() {
-            //         eprint!("{} ", task_time[*x]);
-            //     }
-            //     eprintln!();
-            // }
             break;
         }
     }
@@ -246,10 +157,6 @@ fn assign_task(
     outdeg: &[i32],
     weight: &mut HashMap<(usize, usize), i32>,
 ) -> Vec<(usize, usize)> {
-    // 推定しているsを元に割り当てるタスクの割当結果を返す
-    // starttable_taskに存在するタスクそれぞれについて、現在フリーなメンバーをw_(i,j)の昇順にソートする
-    // starttable_taskについて、w_(i,j) + (取り組んでいるタスクが終わるまでの日数)の合計が小さくなるようにタスクを割り当てる
-
     let mut fm = (0..input.m).collect::<Vec<_>>();
     let mut assign = vec![];
     let mut sorted_tasks = startable_tasks.clone().into_iter().collect::<Vec<_>>();
@@ -264,10 +171,7 @@ fn assign_task(
             let key = (task, *j);
             weight.insert(key, w);
         }
-        fm.sort_by_key(|j| {
-            Reverse(weight[&(task, *j)] + member_require_days[*j])
-            // + if member_state[*j] > 0 { 50 } else { 0 })
-        });
+        fm.sort_by_key(|j| Reverse(weight[&(task, *j)] + member_require_days[*j]));
         if let Some(assigned_m) = fm.pop() {
             if member_state[assigned_m] == 0 {
                 member_require_days[assigned_m] = weight[&(task, assigned_m)];
