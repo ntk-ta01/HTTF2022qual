@@ -127,8 +127,8 @@ pub fn parse_output(input: &Input, f: &str) -> Output {
     let mut out = vec![];
     let mut data = vec![];
     for line in f.lines() {
-        if line.starts_with('#') {
-            let line = line[1..].trim();
+        if let Some(line) = line.strip_prefix('#') {
+            let line = line.trim();
             if line.starts_with("s ") {
                 let line = line[1..].trim();
                 input! {
